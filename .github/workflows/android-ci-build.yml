@@ -1,3 +1,5 @@
+# اسم الملف: .github/workflows/android-ci.yml
+
 name: Android CI Build
 
 on:
@@ -8,8 +10,8 @@ on:
 jobs:
   build:
     name: Android CI Build
-
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -26,18 +28,30 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle', '**/gradle.lockfile') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      # خطوة مهمة: قبول تراخيص الأندرويد تلقائياً
+      - name: Accept Android SDK Licenses
+        run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      # (اختياري) إذا كنت تستخدم Firebase
+      # قم بإنشاء Secret في إعدادات الريبو اسمه GOOGLE_SERVICES_JSON وضع فيه محتوى الملف
+      # - name: Decode google-services.json
+      #   if: secrets.GOOGLE_SERVICES_JSON != null
+      #   run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > app/google-services.json
 
       - name: Make Gradle Wrapper Executable
         run: chmod +x ./gradlew
 
       - name: Build Android App
-        run: ./gradlew assembleDebug
+        # استخدم الأمر المحدد الذي يطابق اسم الـ APK الذي تبحث عنه
+        run: ./gradlew assembleNormalDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
+          # المسار الآن يتطابق مع مخرجات أمر البناء
           path: app/build/outputs/apk/debug/app-normal-debug.apk
